@@ -291,3 +291,6 @@ private:
 	generator_function<T> m_generator;
 };
 }
+
+#define _MGENERATOR(...) [__VA_ARGS__]() mutable
+#define _TAKE_MGENERATOR(gen) std::make_shared<typename std::decay<decltype(gen)>::type>(std::move(gen))
