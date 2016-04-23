@@ -292,12 +292,24 @@ private:
 	generator_function<T> m_generator;
 };
 
+template<typename Gen>
+struct generator_traits : public detail::type_helper<typename std::decay<Gen>::type::value_type>
+{
+	using generator_type = typename std::decay<Gen>::type;
+};
+
 template<typename T>
-std::shared_ptr<generator<T>> gen_lambda_capture(generator<T> gen)
+std::shared_ptr<generator<T>> gen_lambda_capture(generator<T>&& gen)
 {
 	return std::make_shared<generator<T>>(std::move(gen));
+}
+
+template<typename T>
+generator<T>* gen_lambda_capture(generator<T>& gen)
+{
+	return { &gen };
 }
 }
 
 #define _MGENERATOR(...) [__VA_ARGS__]() mutable
-#define _TAKE_MGENERATOR(gen) mmgen::gen_lambda_capture(std::move(gen))
+#define _TAKE_MGENERATOR(gen) mmgen::gen_lambda_capture(std::forward<decltype(gen)>(gen))
