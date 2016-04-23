@@ -13,13 +13,6 @@ namespace detail
 template<typename T>
 using type_storage = typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type;
 
-//forward declaration for generator_function
-template<typename T>
-class yield_result;
-
-template<typename T>
-using generator_function = typename std::function<yield_result<T>()>;
-
 template<typename T>
 struct type_helper
 {
@@ -95,6 +88,11 @@ struct optional_storage : public type_helper<T>
 		destroy();
 	}
 
+	bool valid() const
+	{
+		return m_valid;
+	}
+
 	reference_type operator*()
 	{
 		return *get_ptr();
@@ -128,7 +126,12 @@ struct optional_storage : public type_helper<T>
 };
 }
 
-struct generation_ended_exception : public std::exception
+struct generation_ended : public std::exception
+{
+	using std::exception::exception;
+};
+
+struct bad_generator_dereference : public std::exception
 {
 	using std::exception::exception;
 };
@@ -138,7 +141,7 @@ class yield_result : public detail::type_helper<T>
 {
 public:
 	//an empty yield result => function has ended
-	yield_result() { throw generation_ended_exception(); }
+	yield_result() { throw generation_ended(); }
 
 	yield_result(const_reference_type value)
 		: m_storage(value)
@@ -165,6 +168,9 @@ private:
 	detail::optional_storage<value_type> m_storage;
 };
 
+template<typename T>
+using generator_function = typename std::function<yield_result<T>()>;
+
 //forward declaration
 template<typename T>
 class generator;
@@ -174,31 +180,70 @@ class generator_iterator :
 	public std::iterator<std::input_iterator_tag, T>
 {
 	friend class generator<T>;
+public:
+	generator_iterator& operator++()
+	{
+		try {
+			if (m_generator) {
+				m_value = *(*m_generator)();
+			}
+		} catch (const generation_ended&) {
+			m_generator = nullptr;
+			m_exhausted = true;
+		}
+		return *this;
+	}
+
+	bool operator!=(const generator_iterator& rhs)
+	{
+		return (!m_exhausted || !rhs.m_exhausted);
+	}
+
+	T& operator*()
+	{
+		if (m_value.valid()) {
+			return *m_value;
+		}
+		throw bad_generator_dereference();
+	}
+
+	T const& operator*() const
+	{
+		if (m_value.valid()) {
+			return *m_value;
+		}
+		throw bad_generator_dereference();
+	}
+
 private:
-	generator_iterator(detail::generator_function<T>* generator)
+	generator_iterator(generator_function<T>* generator)
 		: m_generator{ generator }
 		, m_exhausted{ false }
 	{
 		try {
-			m_value = **m_generator();
-		} catch (const generation_ended_exception&) {
+			m_value = *(*m_generator)();
+		} catch (const generation_ended&) {
 			m_generator = nullptr;
 			m_exhausted = true;
 		}
 	}
 
+	generator_iterator(std::nullptr_t)
+		: m_generator{ nullptr }
+		, m_exhausted{ true }
+	{}
+
 	detail::optional_storage<T> m_value;
 	bool m_exhausted;
-	detail::generator_function<T>* m_generator;
+	generator_function<T>* m_generator;
 };
 
 template<typename T>
 class generator : public detail::type_helper<T>
 {
 public:
-	template<typename F>
-	generator(F&& generator_proc)
-		: m_generator(std::forward<F>(generator_proc))
+	generator(generator_function<T> generator_proc)
+		: m_generator(std::move(generator_proc))
 	{}
 
 	generator() = default;
@@ -211,7 +256,38 @@ public:
 
 	~generator() = default;
 
+	generator_iterator<value_type> begin()
+	{
+		if (m_generator) {
+			return{ &m_generator };
+		}
+		return end();
+	}
+
+	generator_iterator<value_type> end()
+	{
+		return generator_iterator<value_type>(nullptr);
+	}
+
+	value_type next()
+	{
+		try {
+			if (m_generator) {
+				return *(m_generator());
+			}
+			throw generation_ended();
+		} catch (const generation_ended&) {
+			m_generator = nullptr;
+			throw;
+		}
+	}
+
+	operator bool() const
+	{
+		return !!m_generator;
+	}
+
 private:
-	detail::generator_function<value_type> m_generator;
+	generator_function<T> m_generator;
 };
 }
