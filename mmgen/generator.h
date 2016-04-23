@@ -300,4 +300,4 @@ std::shared_ptr<generator<T>> take(generator<T> gen)
 }
 
 #define _MGENERATOR(...) [__VA_ARGS__]() mutable
-#define _TAKE_MGENERATOR(gen) take(std::move(gen))
+#define _TAKE_MGENERATOR(gen) mmgen::take(std::move(gen))
