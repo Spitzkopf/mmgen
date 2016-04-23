@@ -293,11 +293,11 @@ private:
 };
 
 template<typename T>
-std::shared_ptr<generator<T>> take(generator<T> gen)
+std::shared_ptr<generator<T>> gen_lambda_capture(generator<T> gen)
 {
 	return std::make_shared<generator<T>>(std::move(gen));
 }
 }
 
 #define _MGENERATOR(...) [__VA_ARGS__]() mutable
-#define _TAKE_MGENERATOR(gen) mmgen::take(std::move(gen))
+#define _TAKE_MGENERATOR(gen) mmgen::gen_lambda_capture(std::move(gen))
