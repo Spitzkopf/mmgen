@@ -2,6 +2,7 @@
 #include <exception>
 #include <utility>
 #include <type_traits>
+#include <functional>
 
 
 namespace mmgen
@@ -10,6 +11,24 @@ namespace detail
 {
 template<typename T>
 using type_storage = typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type;
+
+//forward declaration for generator_function
+template<typename T>
+class yield_result;
+
+template<typename T>
+using generator_function = typename std::function<yield_result<T>()>;
+
+template<typename T>
+struct type_helper
+{
+	using value_type = typename T;
+	using reference_type = typename T&;
+	using const_reference_type = typename T const&;
+	using pointer_type = typename T*;
+	using const_pointer_type = typename const T*;
+	using rvalue_reference_type = typename T&&;
+};
 }
 
 struct generation_ended_exception : public std::exception
@@ -18,16 +37,9 @@ struct generation_ended_exception : public std::exception
 };
 
 template<typename T>
-class yield_result
+class yield_result : public detail::type_helper<T>
 {
 public:
-	using value_type = T;
-	using reference_type = T&;
-	using const_reference_type = T const&;
-	using pointer_type = T*;
-	using const_pointer_type = const T*;
-	using rvalue_reference_type = T&&;
-
 	//an empty yield result => function has ended
 	yield_result() { throw generation_ended_exception(); }
 
@@ -68,5 +80,28 @@ private:
 	}
 
 	detail::type_storage<value_type> m_storage;
+};
+
+template<typename T>
+class generator : public detail::type_helper<T>
+{
+public:
+	template<typename F>
+	generator(F&& generator_proc)
+		: m_generator(std::forward<F>(generator_proc))
+	{}
+
+	generator() = default;
+
+	generator(const generator&) = delete;
+	generator& operator=(const generator&) = delete;
+
+	generator(generator&&) = default;
+	generator& operator=(generator&&) = default;
+
+	~generator() = default;
+
+private:
+	detail::generator_function<value_type> m_generator;
 };
 }
