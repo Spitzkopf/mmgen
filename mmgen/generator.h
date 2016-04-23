@@ -46,6 +46,16 @@ public:
 		get_ptr()->~T();
 	}
 
+	reference_type operator*()
+	{
+		return *get_ptr();
+	}
+
+	const_reference_type operator*() const
+	{
+		return *get_ptr();
+	}
+
 private:
 	pointer_type get_ptr()
 	{
