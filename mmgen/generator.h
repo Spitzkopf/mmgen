@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <functional>
 #include <iterator>
+#include <memory>
 
 
 namespace mmgen
@@ -290,7 +291,13 @@ public:
 private:
 	generator_function<T> m_generator;
 };
+
+template<typename T>
+std::shared_ptr<generator<T>> take(generator<T> gen)
+{
+	return std::make_shared<generator<T>>(std::move(gen));
+}
 }
 
 #define _MGENERATOR(...) [__VA_ARGS__]() mutable
-#define _TAKE_MGENERATOR(gen) std::make_shared<typename std::decay<decltype(gen)>::type>(std::move(gen))
+#define _TAKE_MGENERATOR(gen) take(std::move(gen))
