@@ -298,6 +298,9 @@ struct generator_traits : public detail::type_helper<typename std::decay<Gen>::t
 	using generator_type = typename std::decay<Gen>::type;
 };
 
+template<typename Gen>
+using gen_value_type = typename generator_traits<Gen>::value_type;
+
 template<typename T>
 std::shared_ptr<generator<T>> gen_lambda_capture(generator<T>&& gen)
 {

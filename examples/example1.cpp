@@ -3,20 +3,22 @@
 #include <iostream>
 
 
-template<typename T>
-mmgen::generator<T> take(mmgen::generator<T> generator, size_t count)
+template<typename Gen>
+mmgen::generator<typename mmgen::gen_value_type<Gen>> take(Gen&& generator, size_t count)
 {
+	using value_type = typename mmgen::gen_value_type<Gen>;
 	return _MGENERATOR(generator = _TAKE_MGENERATOR(generator), count)
 	{
 		for (auto&& item : *generator) {
 			if (count > 0) {
 				--count;
-				return mmgen::yield_result<T>(std::forward<decltype(item)>(item));
-			} else {
+				return mmgen::yield_result<value_type>(std::forward<decltype(item)>(item));
+			}
+			else {
 				break;
 			}
 		}
-		return mmgen::yield_result<T>();
+		return mmgen::yield_result<value_type>();
 	};
 }
 
