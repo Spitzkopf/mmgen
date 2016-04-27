@@ -186,7 +186,7 @@ public:
 	{
 		try {
 			if (m_generator) {
-				m_value = *(*m_generator)();
+				m_value = m_generator->next();
 			}
 		} catch (const generation_ended&) {
 			m_generator = nullptr;
@@ -217,12 +217,12 @@ public:
 	}
 
 private:
-	generator_iterator(generator_function<T>* generator)
+	generator_iterator(mmgen::generator<T>* generator)
 		: m_generator{ generator }
 		, m_exhausted{ false }
 	{
 		try {
-			m_value = *(*m_generator)();
+			m_value = m_generator->next();
 		} catch (const generation_ended&) {
 			m_generator = nullptr;
 			m_exhausted = true;
@@ -236,7 +236,7 @@ private:
 
 	detail::optional_storage<T> m_value;
 	bool m_exhausted;
-	generator_function<T>* m_generator;
+	mmgen::generator<T>* m_generator;
 };
 
 template<typename T>
@@ -260,7 +260,7 @@ public:
 	generator_iterator<value_type> begin()
 	{
 		if (m_generator) {
-			return{ &m_generator };
+			return{ this };
 		}
 		return end();
 	}
