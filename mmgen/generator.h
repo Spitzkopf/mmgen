@@ -315,4 +315,3 @@ generator<T>* gen_lambda_capture(generator<T>& gen)
 }
 
 #define _MGENERATOR(...) [__VA_ARGS__]() mutable
-#define _TAKE_MGENERATOR(gen) mmgen::gen_lambda_capture(std::forward<decltype(gen)>(gen))

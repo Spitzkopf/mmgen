@@ -7,7 +7,7 @@ template<typename Gen>
 mmgen::generator<typename mmgen::gen_value_type<Gen>> take(Gen&& generator, size_t count)
 {
 	using value_type = typename mmgen::gen_value_type<Gen>;
-	return _MGENERATOR(generator = _TAKE_MGENERATOR(generator), count)
+	return _MGENERATOR(generator = mmgen::gen_lambda_capture(std::forward<Gen>(generator)), count)
 	{
 		for (auto&& item : *generator) {
 			if (count > 0) {
