@@ -43,24 +43,26 @@ But this code will run forever.
 
 Lets define another function, which takes n elements from the generator.
 ```
-template<typename T>
-mmgen::generator<T> take(mmgen::generator<T> generator, size_t count)
+template<typename Gen>
+mmgen::generator<typename mmgen::gen_value_type<Gen>> take(Gen&& generator, size_t count)
 {
-	return _MGENERATOR(generator = _TAKE_MGENERATOR(generator), count)
+	using value_type = typename mmgen::gen_value_type<Gen>;
+	return _MGENERATOR(generator = mmgen::gen_lambda_capture(std::forward<Gen>(generator)), count)
 	{
 		for (auto&& item : *generator) {
 			if (count > 0) {
 				--count;
-				return mmgen::yield_result<T>(std::forward<decltype(item)>(item));
-			} else {
+				return mmgen::yield_result<value_type>(std::forward<decltype(item)>(item));
+			}
+			else {
 				break;
 			}
 		}
-		return mmgen::yield_result<T>();
+		return mmgen::yield_result<value_type>();
 	};
 }
 ```
-Here, `take` consumes the parameter generator, and yields items until count is 0 (and at this point, we took all the items we wanted).
+Here, `take` captures the generator, resulting in a shared_ptr or a regular pointer (depending on wether it was passed by rvalue reference or by reference), and yields items until count is 0 (and at this point, we took all the items we wanted).
 
 Now we can take the first 20 items in the generator, for example.
 ```
