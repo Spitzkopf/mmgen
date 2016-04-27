@@ -189,8 +189,7 @@ public:
 				m_value = m_generator->next();
 			}
 		} catch (const generation_ended&) {
-			m_generator = nullptr;
-			m_exhausted = true;
+			exhaust();
 		}
 		return *this;
 	}
@@ -224,8 +223,7 @@ private:
 		try {
 			m_value = m_generator->next();
 		} catch (const generation_ended&) {
-			m_generator = nullptr;
-			m_exhausted = true;
+			exhaust();
 		}
 	}
 
@@ -233,6 +231,12 @@ private:
 		: m_generator{ nullptr }
 		, m_exhausted{ true }
 	{}
+
+	void exhaust()
+	{
+		m_generator = nullptr;
+		m_exhausted = true;
+	}
 
 	detail::optional_storage<T> m_value;
 	bool m_exhausted;
