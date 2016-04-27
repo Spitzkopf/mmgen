@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="generator.h" />
+    <ClInclude Include="generator_utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3D7693E9-3C6F-4198-AAE1-BDBAB4B571A6}</ProjectGuid>
