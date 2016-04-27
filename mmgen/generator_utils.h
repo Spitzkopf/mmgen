@@ -88,11 +88,46 @@ struct tee_impl<1, Gen> : public tee_impl_helper<Gen>
 		return std::make_tuple(make_single_tee_generator<1>(generator, dequeues));
 	}
 };
-}//detail
+}//tee detail
 
 template<size_t N, typename Gen>
 typename detail::tuple_repeat<mmgen::generator<typename mmgen::gen_value_type<Gen>>, N>::type tee(Gen generator)
 {
 	return detail::tee_impl<N, Gen>::tee(std::move(generator));
+}
+
+namespace detail
+{
+template<typename Gen, typename ...Gens>
+struct chain_impl : public mmgen::generator_traits<Gen>
+{
+	static mmgen::generator<value_type> chain(Gen&& gen, Gens&&... gens)
+	{
+		return chain_impl<Gen, decltype(chain_impl<Gens...>::chain(std::forward<Gens>(gens)...))>::chain(std::forward<Gen>(gen), chain_impl<Gens...>::chain(std::forward<Gens>(gens)...));
+	}
+};
+
+template<typename Gen>
+struct chain_impl<Gen, Gen> : public mmgen::generator_traits<Gen>
+{
+	static mmgen::generator<value_type> chain(Gen&& gen1, Gen&& gen2)
+	{
+		return _MGENERATOR(gen1 = mmgen::gen_lambda_capture(std::forward<Gen>(gen1)), gen2 = mmgen::gen_lambda_capture(std::forward<Gen>(gen2))) {
+			for (auto&& item : *gen1) {
+				return mmgen::yield_result<value_type>(std::forward<decltype(item)>(item));
+			}
+			for (auto&& item : *gen2) {
+				return mmgen::yield_result<value_type>(std::forward<decltype(item)>(item));
+			}
+			return mmgen::yield_result<value_type>();
+		};
+	}
+};
+}//chain detail
+
+template<typename Gen, typename ...Gens>
+mmgen::generator<typename mmgen::gen_value_type<Gen>> chain(Gen&& gen, Gens&&... gens)
+{
+	return detail::chain_impl<Gen, Gens...>::chain(std::forward<Gen>(gen), std::forward<Gens>(gens)...);
 }
 }
