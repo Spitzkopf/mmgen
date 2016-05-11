@@ -184,4 +184,19 @@ auto map(Gen&& generator, F&& f) -> mmgen::generator<decltype(std::forward<F>(f)
 		return mmgen::yield_result<result_type>{};
 	};
 }
+
+template<typename Gen, typename Pred>
+mmgen::generator<typename mmgen::gen_value_type<Gen>> filter(Gen&& generator, Pred&& predicate)
+{
+	using value_type = typename mmgen::gen_value_type<Gen>;
+	return _MGENERATOR(generator = mmgen::gen_lambda_capture(std::forward<Gen>(generator)), predicate = std::forward<Pred>(predicate))
+	{
+		for (auto&& item : *generator) {
+			if (predicate(std::forward<decltype(item)>(item))) {
+				return mmgen::yield_result<value_type>{ std::forward<decltype(item)>(item) };
+			}
+		}
+		return mmgen::yield_result<value_type>{};
+	};
+}
 }
