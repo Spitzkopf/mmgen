@@ -152,4 +152,10 @@ mmgen::generator<T> repeat(T&& value)
 		return mmgen::yield_result<T>{ value };
 	};
 }
+
+template<typename T>
+mmgen::generator<T> repeat(T&& value, size_t times)
+{
+	return mmgen::take(mmgen::repeat(std::forward<T>(value)), times);
+}
 }
