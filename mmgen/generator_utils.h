@@ -199,4 +199,22 @@ mmgen::generator<typename mmgen::gen_value_type<Gen>> filter(Gen&& generator, Pr
 		return mmgen::yield_result<value_type>{};
 	};
 }
+
+template<typename T>
+auto from_iterable(T&& iterable) -> mmgen::generator<typename std::remove_reference<decltype(*std::begin(std::forward<T>(iterable)))>::type>
+{
+	using iterator_type = decltype(std::begin(std::forward<T>(iterable)));
+	using value_type = typename std::remove_reference<decltype(*std::begin(std::forward<T>(iterable)))>::type;
+	return _MGENERATOR(iterable = std::forward<T>(iterable), current = mmgen::detail::optional_storage<iterator_type>{}) {
+		if (!current.valid()) {
+			current = std::begin(iterable);
+		}
+		if (*current != iterable.end()) {
+			auto value = **current;
+			++*current;
+			return mmgen::yield_result<value_type>{ value };
+		}
+		return mmgen::yield_result<value_type>{};
+	};
+}
 }
