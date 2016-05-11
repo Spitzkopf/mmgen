@@ -131,6 +131,20 @@ mmgen::generator<typename mmgen::gen_value_type<Gen>> chain(Gen&& gen, Gens&&...
 	return detail::chain_impl<Gen, Gens...>::chain(std::forward<Gen>(gen), std::forward<Gens>(gens)...);
 }
 
+template<typename Gen>
+mmgen::generator<typename mmgen::gen_value_type<Gen>> take(Gen&& generator, size_t count)
+{
+	using value_type = typename mmgen::gen_value_type<Gen>;
+	return _MGENERATOR(generator = mmgen::gen_lambda_capture(std::forward<Gen>(generator)), count)
+	{
+		if (count > 0) {
+			--count;
+			return mmgen::yield_result<value_type>{ generator->next() };
+		}
+		return mmgen::yield_result<value_type>{};
+	};
+}
+
 template<typename T>
 mmgen::generator<T> repeat(T&& value)
 {
