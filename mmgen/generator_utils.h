@@ -217,4 +217,40 @@ auto from_iterable(T&& iterable) -> mmgen::generator<typename std::remove_refere
 		return mmgen::yield_result<value_type>{};
 	};
 }
+
+namespace detail
+{
+template<typename ...Gens>
+struct infer_gen_zip_tuple;
+
+template<typename Gen, typename ...Gens>
+struct infer_gen_zip_tuple<Gen, Gens...>
+{
+	using type = decltype(std::tuple_cat(std::declval<std::tuple<typename mmgen::gen_value_type<Gen>>>(), std::declval<typename infer_gen_zip_tuple<Gens...>::type>()));
+};
+
+template<typename Gen>
+struct infer_gen_zip_tuple<Gen>
+{
+	using type = std::tuple<typename mmgen::gen_value_type<Gen>>;
+};
+
+template<typename ...GenPtrs>
+auto zip_iteration(GenPtrs... gens)
+{
+	return std::make_tuple(std::forward<GenPtrs>(gens)->next()...);
+}
+}//zip detail
+
+template<typename ...Gens>
+mmgen::generator<typename detail::infer_gen_zip_tuple<Gens...>::type> zip(Gens&&... gens)
+{
+	return [](auto&&... cgens) {
+		return _MGENERATOR(cgens...) {
+			return mmgen::yield_result<typename detail::infer_gen_zip_tuple<Gens...>::type>{
+				detail::zip_iteration(cgens...)
+			};
+		};
+	}(mmgen::gen_lambda_capture(std::forward<Gens>(gens))...);
+}
 }
