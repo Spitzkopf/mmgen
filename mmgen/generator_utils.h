@@ -145,6 +145,20 @@ mmgen::generator<typename mmgen::gen_value_type<Gen>> take(Gen&& generator, size
 	};
 }
 
+template<typename Gen, typename Pred>
+mmgen::generator<typename mmgen::gen_value_type<Gen>> take_while(Gen&& generator, Pred&& predicate)
+{
+	using value_type = typename mmgen::gen_value_type<Gen>;
+	return _MGENERATOR(generator = mmgen::gen_lambda_capture(std::forward<Gen>(generator)), predicate = std::forward<Pred>(predicate))
+	{
+		auto next = generator->next();
+		if (predicate(next)) {
+			return mmgen::yield_result<value_type>{ next };
+		}
+		return mmgen::yield_result<value_type>{};
+	};
+}
+
 template<typename T>
 mmgen::generator<T> repeat(T&& value)
 {
