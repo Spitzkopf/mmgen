@@ -172,4 +172,16 @@ mmgen::generator<T> repeat(T&& value, size_t times)
 {
 	return mmgen::take(mmgen::repeat(std::forward<T>(value)), times);
 }
+
+template<typename Gen, typename F>
+auto map(Gen&& generator, F&& f) -> mmgen::generator<decltype(std::forward<F>(f)(std::declval<typename mmgen::gen_value_type<Gen>>()))>
+{
+	using result_type = decltype(std::forward<F>(f)(std::declval<typename mmgen::gen_value_type<Gen>>()));
+	return _MGENERATOR(generator = mmgen::gen_lambda_capture(std::forward<Gen>(generator)), f = std::forward<F>(f)) {
+		for (auto&& item : *generator) {
+			return mmgen::yield_result<result_type>{ f(std::forward<decltype(item)>(item)) };
+		}
+		return mmgen::yield_result<result_type>{};
+	};
+}
 }
