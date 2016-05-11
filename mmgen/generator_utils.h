@@ -107,12 +107,12 @@ struct chain_impl : public mmgen::generator_traits<Gen>
 	}
 };
 
-template<typename Gen>
-struct chain_impl<Gen, Gen> : public mmgen::generator_traits<Gen>
+template<typename Gen1, typename Gen2>
+struct chain_impl<Gen1, Gen2> : public mmgen::generator_traits<Gen1>
 {
-	static mmgen::generator<value_type> chain(Gen&& gen1, Gen&& gen2)
+	static mmgen::generator<value_type> chain(Gen1&& gen1, Gen2&& gen2)
 	{
-		return _MGENERATOR(gen1 = mmgen::gen_lambda_capture(std::forward<Gen>(gen1)), gen2 = mmgen::gen_lambda_capture(std::forward<Gen>(gen2))) {
+		return _MGENERATOR(gen1 = mmgen::gen_lambda_capture(std::forward<Gen1>(gen1)), gen2 = mmgen::gen_lambda_capture(std::forward<Gen2>(gen2))) {
 			for (auto&& item : *gen1) {
 				return mmgen::yield_result<value_type>(std::forward<decltype(item)>(item));
 			}
@@ -129,6 +129,21 @@ template<typename Gen, typename ...Gens>
 mmgen::generator<typename mmgen::gen_value_type<Gen>> chain(Gen&& gen, Gens&&... gens)
 {
 	return detail::chain_impl<Gen, Gens...>::chain(std::forward<Gen>(gen), std::forward<Gens>(gens)...);
+}
+
+template<typename Gen, typename T = typename gen_value_type<Gen>>
+mmgen::generator<T> prepend(Gen&& gen, T&& value)
+{
+	return _MGENERATOR(gen = gen_lambda_capture(std::forward<Gen>(gen)), value = std::forward<T>(value), head = true) {
+		if (head) {
+			head = false;
+			return mmgen::yield_result<T>{ value };
+		}
+		for (auto&& item : *gen) {
+			return mmgen::yield_result<T>(std::forward<decltype(item)>(item));
+		}
+		return mmgen::yield_result<T>{};
+	};
 }
 
 template<typename Gen>
@@ -201,10 +216,10 @@ mmgen::generator<typename mmgen::gen_value_type<Gen>> filter(Gen&& generator, Pr
 }
 
 template<typename T>
-auto from_iterable(T&& iterable) -> mmgen::generator<typename std::remove_reference<decltype(*std::begin(std::forward<T>(iterable)))>::type>
+auto from_iterable(T&& iterable) -> mmgen::generator<typename std::decay<decltype(*std::begin(std::forward<T>(iterable)))>::type>
 {
 	using iterator_type = decltype(std::begin(std::forward<T>(iterable)));
-	using value_type = typename std::remove_reference<decltype(*std::begin(std::forward<T>(iterable)))>::type;
+	using value_type = typename std::decay<decltype(*std::begin(std::forward<T>(iterable)))>::type;
 	return _MGENERATOR(iterable = std::forward<T>(iterable), current = mmgen::detail::optional_storage<iterator_type>{}) {
 		if (!current.valid()) {
 			current = std::begin(iterable);
