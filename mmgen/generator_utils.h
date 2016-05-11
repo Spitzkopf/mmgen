@@ -130,4 +130,12 @@ mmgen::generator<typename mmgen::gen_value_type<Gen>> chain(Gen&& gen, Gens&&...
 {
 	return detail::chain_impl<Gen, Gens...>::chain(std::forward<Gen>(gen), std::forward<Gens>(gens)...);
 }
+
+template<typename T>
+mmgen::generator<T> repeat(T&& value)
+{
+	return _MGENERATOR(value = std::forward<T>(value)) {
+		return mmgen::yield_result<T>{ value };
+	};
+}
 }
