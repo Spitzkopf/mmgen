@@ -29,6 +29,7 @@ template<typename T>
 struct optional_storage : public type_helper<T>
 {
 	optional_storage()
+		: m_valid(false)
 	{
 	}
 
@@ -53,9 +54,7 @@ struct optional_storage : public type_helper<T>
 	optional_storage& operator=(const optional_storage& rhs)
 	{
 		if (this != &rhs) {
-			destroy();
-			new (&m_storage) value_type(*rhs);
-			m_valid = true;
+			reassign(*rhs);
 		}
 		return *this;
 	}
@@ -80,13 +79,23 @@ struct optional_storage : public type_helper<T>
 
 	optional_storage& operator=(rvalue_reference_type value)
 	{
-		*this = optional_storage(std::forward<value_type>(value));
+		reassign(std::forward<value_type>(value));
 		return *this;
 	}
 
 	~optional_storage()
 	{
 		destroy();
+	}
+
+	template<typename T>
+	void reassign(T&& value)
+	{
+		if (m_valid) {
+			destroy();
+		}
+		new (&m_storage) value_type(std::forward<T>(value));
+		m_valid = true;
 	}
 
 	bool valid() const
