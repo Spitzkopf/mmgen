@@ -174,6 +174,26 @@ mmgen::generator<typename mmgen::gen_value_type<Gen>> take_while(Gen&& generator
 	};
 }
 
+template<typename Gen, typename Pred>
+mmgen::generator<typename mmgen::gen_value_type<Gen>> drop_while(Gen&& generator, Pred&& predicate)
+{
+	using value_type = typename mmgen::gen_value_type<Gen>;
+	return _MGENERATOR(generator = mmgen::gen_lambda_capture(std::forward<Gen>(generator)), predicate = std::forward<Pred>(predicate), dropping = true)
+	{
+		for (auto&& item : *generator) {
+			if (dropping) {
+				if (!predicate(std::forward<decltype(item)>(item))) {
+					dropping = false;
+					return mmgen::yield_result<value_type>{ std::forward<decltype(item)>(item) };
+				}
+			} else {
+				return mmgen::yield_result<value_type>{ std::forward<decltype(item)>(item) };
+			}
+		}
+		return mmgen::yield_result<value_type>{};
+	};
+}
+
 template<typename T>
 mmgen::generator<T> repeat(T&& value)
 {
